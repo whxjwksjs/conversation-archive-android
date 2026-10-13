@@ -1,0 +1,73 @@
+name: Build and release APKs
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version name (must match versionName in app/build.gradle.kts)'
+        required: true
+        default: '1.2.0'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android platform and build-tools
+        run: sdkmanager "platforms;android-34" "build-tools;34.0.0"
+
+      - name: Set up Gradle 8.7
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: 8.7
+
+      - name: Run unit tests
+        run: gradle :app:testDebugUnitTest
+
+      - name: Build debug APKs
+        run: gradle :app:assembleDebug
+
+      - name: Verify APK signatures and metadata
+        run: |
+          BT="$ANDROID_HOME/build-tools/34.0.0"
+          for apk in app/build/outputs/apk/debug/*.apk; do
+            "$BT/apksigner" verify "$apk" && echo "SIGNATURE OK: $apk"
+            "$BT/aapt" dump badging "$apk" | head -3
+          done
+
+      - name: Rename APKs
+        run: |
+          VERSION="${{ inputs.version }}"
+          cd app/build/outputs/apk/debug
+          for f in *.apk; do echo "found: $f"; done
+          mv app-armeabi-v7a-debug.apk "convarchive-${VERSION}-debug-armeabi-v7a.apk"
+          mv app-arm64-v8a-debug.apk "convarchive-${VERSION}-debug-arm64-v8a.apk"
+          mv app-universal-debug.apk "convarchive-${VERSION}-debug-universal.apk"
+          ls -la convarchive-*.apk
+
+      - name: Create tag and GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ inputs.version }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "v$VERSION"
+          git push origin "v$VERSION"
+          gh release create "v$VERSION" \
+            --title "v$VERSION - Conversation Archive for Android" \
+            --notes "Conversation Archive v$VERSION - local-first Android app to capture, import, archive, and export conversations from Google Gemini, Google AI Studio, and Google Jules. No accounts, no API keys, no telemetry; everything stays on the device. IMPORTANT: these are DEBUG builds signed with the Android debug key. Android will warn about an unknown developer on install - that is expected for a debug build. Install the universal APK." \
+            app/build/outputs/apk/debug/convarchive-*.apk
