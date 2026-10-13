@@ -1,0 +1,12 @@
+{
+"format": "gemini-voyager.chat.v1",
+"url": "https://gemini.google.com/app/abc123",
+"exportedAt": "2026-10-12T19:00:00.000Z",
+"count": 4,
+"items": [
+{ "role": "user", "content": "Help me plan a 2-week trip to Japan." },
+{ "role": "assistant", "content": "Here's a suggested itinerary..." },
+{ "role": "user", "content": "What about food?" },
+{ "role": "assistant", "content": "Try ramen in Sapporo..." }
+]
+}

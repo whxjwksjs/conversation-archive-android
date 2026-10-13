@@ -1,0 +1,2 @@
+{"id": "c_abc123", "title": "Help me plan a trip to Japan", "source": "gemini.google.com", "flags": [], "turns": [{"role": "user", "content": "I'm planning a 2-week trip to Japan..."}, {"role": "assistant", "content": "Here's a suggested itinerary..."}]}
+{"id": "c_def456", "title": "Explain recursion", "source": "gemini.google.com", "flags": ["retried"], "turns": [{"role": "user", "content": "Explain recursion simply."}, {"role": "assistant", "content": "Recursion is when a function calls itself..."}]}

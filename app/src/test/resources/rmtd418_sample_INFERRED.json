@@ -1,0 +1,21 @@
+{
+"turns": [
+{
+"user": "What is 17 * 23?",
+"thought": "Simple arithmetic; 17*23 = 391.",
+"responses": ["391."]
+},
+{
+"user": "Show it in Python.",
+"responses": ["```python\nprint(17 * 23)\n```", "Alternatively: `17*23` in a REPL."]
+}
+],
+"entries": [
+{ "role": "user", "content": "What is 17 * 23?" },
+{ "role": "thought", "content": "Simple arithmetic; 17*23 = 391." },
+{ "role": "assistant", "content": "391." },
+{ "role": "user", "content": "Show it in Python." },
+{ "role": "assistant", "content": "```python\nprint(17 * 23)\n```" },
+{ "role": "assistant", "content": "Alternatively: `17*23` in a REPL." }
+]
+}
