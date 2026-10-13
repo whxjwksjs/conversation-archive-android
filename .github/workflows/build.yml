@@ -38,14 +38,16 @@ jobs:
         with:
           gradle-version: 8.7
 
-      - name: Diagnose repository reachability
+      - name: Diagnose Gradle plugin resolution
         run: |
-          echo "--- google maven AGP pom ---"
-          curl -sS -o /dev/null -w "%{http_code} %{url_effective}\n" https://dl.google.com/dl/android/maven2/com/android/tools/build/gradle/8.5.2/gradle-8.5.2.pom || echo "CURL FAILED for google maven"
-          echo "--- gradle plugin portal marker pom ---"
-          curl -sS -o /dev/null -w "%{http_code} %{url_effective}\n" https://plugins.gradle.org/m2/com/android/application/com.android.application.gradle.plugin/8.5.2/com.android.application.gradle.plugin-8.5.2.pom || echo "CURL FAILED for plugin portal"
-          echo "--- sdkmanager repo (known good) ---"
-          curl -sS -o /dev/null -w "%{http_code} %{url_effective}\n" https://dl.google.com/android/repository/repository2-1.xml || echo "CURL FAILED for sdk repo"
+          echo "--- gradle version ---"
+          gradle --version | head -12
+          echo "--- proxy / java tool env ---"
+          env | grep -iE "proxy|java_tool" || echo "(no proxy env vars)"
+          echo "--- init scripts ---"
+          ls -la ~/.gradle/init.d/ 2>/dev/null || echo "(no init.d)"
+          echo "--- plugin resolution with --info (filtered) ---"
+          gradle help --info 2>&1 | grep -iE "could not|status code|transfer failed|download|resolve|FAILED" | head -60 || true
 
       - name: Run unit tests
         run: gradle :app:testDebugUnitTest
