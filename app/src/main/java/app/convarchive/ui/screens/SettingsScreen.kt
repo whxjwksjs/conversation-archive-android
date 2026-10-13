@@ -161,12 +161,15 @@ fun SettingsScreen(navController: NavController, vm: SettingsViewModel = viewMod
 
             SettingsSection(title = "Privacy") {
                 PrivacyBullet("No accounts: there is nothing to sign in to.")
-                PrivacyBullet("No network: the app makes no network calls of its own. The only " +
-                    "network use is opening official sites in your own browser when you tap " +
-                    "\"Open in browser\".")
+                PrivacyBullet("Network use is limited to the in-app browsers: loading " +
+                    "gemini.google.com, aistudio.google.com, jules.google.com and " +
+                    "Google's login pages, plus file downloads those pages offer. " +
+                    "Nothing else is ever sent anywhere.")
                 PrivacyBullet("No telemetry, analytics, or crash reporting.")
-                PrivacyBullet("No passwords, cookies, or tokens are ever requested, stored, " +
-                    "or transmitted. Capture happens in your browser, under your control.")
+                PrivacyBullet("No passwords, cookies, or tokens are ever requested by the app, " +
+                    "read from form fields, or transmitted. You sign in on Google's " +
+                    "own pages; the extractor only reads conversation text you can " +
+                    "already see.")
             }
 
             SettingsSection(title = "About") {

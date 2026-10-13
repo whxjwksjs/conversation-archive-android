@@ -69,17 +69,17 @@ private val platforms = listOf(
     PlatformCard(
         "gemini",
         "Gemini",
-        "Archive chats from the Gemini web app via the companion userscript.",
+        "Browse Gemini in the app, stay logged in, and save chats with one tap.",
     ),
     PlatformCard(
         "aistudio",
         "Google AI Studio",
-        "Archive AI Studio prompts and responses via the companion userscript.",
+        "Browse AI Studio in the app, stay logged in, and save prompts with one tap.",
     ),
     PlatformCard(
         "jules",
         "Google Jules",
-        "Archive Jules coding tasks: prompts, status, and activity as shown on the page.",
+        "Browse Jules in the app, stay logged in, and save tasks with one tap.",
     ),
 )
 
@@ -99,7 +99,7 @@ fun HomeScreen(navController: NavController, vm: HomeViewModel = viewModel()) {
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            // Honest capture banner.
+            // Capture banner.
             Surface(
                 color = MaterialTheme.colorScheme.primaryContainer,
                 shape = MaterialTheme.shapes.medium,
@@ -115,8 +115,9 @@ fun HomeScreen(navController: NavController, vm: HomeViewModel = viewModel()) {
                     )
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        text = "Capture works through your browser + a companion userscript " +
-                            "\u2014 opening a site never captures anything by itself.",
+                        text = "Each service opens in an in-app browser \u2014 log in once " +
+                            "with your Google account and tap \u201cSave conversation\u201d " +
+                            "on any chat or task.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
                     )
@@ -128,8 +129,8 @@ fun HomeScreen(navController: NavController, vm: HomeViewModel = viewModel()) {
                     icon = Icons.Filled.Description,
                     title = platform.name,
                     description = platform.description,
-                    actionLabel = "Open guide",
-                    onClick = { navController.navigate(Routes.guide(platform.slug)) },
+                    actionLabel = "Open in app",
+                    onClick = { navController.navigate(Routes.browser(platform.slug)) },
                 )
             }
 

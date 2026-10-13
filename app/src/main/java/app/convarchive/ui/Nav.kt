@@ -8,6 +8,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import app.convarchive.ui.screens.BackupScreen
+import app.convarchive.ui.screens.BrowserScreen
 import app.convarchive.ui.screens.DetailScreen
 import app.convarchive.ui.screens.ExportScreen
 import app.convarchive.ui.screens.HomeScreen
@@ -27,8 +28,10 @@ object Routes {
     const val EXPORT = "export"
     const val BACKUP = "backup"
     const val SETTINGS = "settings"
+    const val BROWSER = "browser/{platform}"
 
     fun guide(platform: String) = "guide/$platform"
+    fun browser(platform: String) = "browser/$platform"
     fun detail(id: Long) = "detail/$id"
     fun rawJson(id: Long) = "rawjson/$id"
 }
@@ -91,5 +94,14 @@ fun Nav(
         composable(Routes.EXPORT) { ExportScreen(navController) }
         composable(Routes.BACKUP) { BackupScreen(navController) }
         composable(Routes.SETTINGS) { SettingsScreen(navController) }
+        composable(
+            Routes.BROWSER,
+            arguments = listOf(navArgument("platform") { type = NavType.StringType }),
+        ) { backStackEntry ->
+            BrowserScreen(
+                navController = navController,
+                platform = backStackEntry.arguments?.getString("platform") ?: "gemini",
+            )
+        }
     }
 }
