@@ -1,3 +1,4 @@
+---
 name: Build and release APKs
 
 on:
@@ -42,11 +43,34 @@ jobs:
 
       - name: Diagnose Gradle plugin resolution
         run: |
-          echo "--- gradle version ---"
-          gradle --version | head -12
-          echo "--- plugin resolution with --info (full relevant lines) ---"
-          gradle help --info > /tmp/gradle-info.log 2>&1 || true
-          grep -iE "Resource missing|HTTP GET|HTTP HEAD|Could not|status code|transfer|Exception|Caused by|dl.google.com|repo1.maven|plugins.gradle" /tmp/gradle-info.log | head -80 || true
+          echo "--- Java network test ---"
+          mkdir -p /tmp/jtest
+          cat > /tmp/jtest/FetchTest.java <<'JAVAEOF'
+          import java.net.*;
+          public class FetchTest {
+              public static void main(String[] a) throws Exception {
+                  String[] urls = {
+                      "https://dl.google.com/dl/android/maven2/com/android/tools/build/gradle/8.5.2/gradle-8.5.2.pom",
+                      "https://repo1.maven.org/maven2/junit/junit/4.13.2/junit-4.13.2.pom"
+                  };
+                  for (String u : urls) {
+                      try {
+                          HttpURLConnection c = (HttpURLConnection) new URL(u).openConnection();
+                          c.setConnectTimeout(15000);
+                          c.setReadTimeout(15000);
+                          c.setRequestProperty("User-Agent", "Gradle/8.7");
+                          System.out.println(c.getResponseCode() + " " + u);
+                      } catch (Exception e) {
+                          System.out.println("FAILED " + u + " : " + e);
+                      }
+                  }
+              }
+          }
+          JAVAEOF
+          javac -d /tmp/jtest /tmp/jtest/FetchTest.java && java -cp /tmp/jtest FetchTest
+          echo "--- Gradle --debug plugin resolution ---"
+          gradle help --debug > /tmp/gradle-debug.log 2>&1 || true
+          grep -iE "Resource missing|HTTP|Could not|status code|dl.google.com|repo1.maven" /tmp/gradle-debug.log | head -60 || true
           echo "--- end diagnostic ---"
 
       - name: Run unit tests
