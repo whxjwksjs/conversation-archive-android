@@ -1,8 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- No INTERNET permission: the app is local-only. External browsers open
-         official sites; no in-app network calls are made. -->
+    <!-- INTERNET is required ONLY for the in-app browsers (v1.1+), which load
+         the three official sites (gemini.google.com, aistudio.google.com,
+         jules.google.com) plus Google's login pages inside a WebView. The app
+         makes no other network calls: no accounts, no telemetry, no servers.
+         (v1.0 declared no INTERNET permission at all.) -->
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:name=".ConvArchiveApp"

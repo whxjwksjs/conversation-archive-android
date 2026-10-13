@@ -1,41 +1,64 @@
 # Conversation Archive
 
-**Version 1.0.0 — 2026-10-12.** A 100%-local Android app that archives
+**Version 1.1.0 — 2026-10-13.** A 100%-local Android app that archives
 conversations from **Gemini** (gemini.google.com), **Google AI Studio**
 (aistudio.google.com), and **Google Jules** (jules.google.com) into one
 searchable, exportable personal library. No accounts, no telemetry, no
 servers — your archive never leaves your device.
 
-## How capture works (3 steps)
+## How capture works (v1.1: in-app browsers)
 
-The app cannot reach into your logged-in Google sessions, and it must never
-handle your passwords or cookies. So capture is a deliberate handoff:
+Each service opens in an **in-app browser** right inside Conversation
+Archive:
 
-1. **Open the official site in your external browser** — the app's guide
-   screens have "Open site in browser" buttons. Opening the site captures
-   nothing by itself.
-2. **Export with a companion userscript** — install Tampermonkey or
-   Violentmonkey in a userscript-capable Android browser (Firefox Android is
-   the easiest path; Quetta, Lemur, Helium, Mises, and Edge Android also
-   work — **Kiwi Browser is discontinued, do not use it**), add the
-   companion script for that site from `userscripts/` in this repo, open
-   the conversation while logged in, and tap the floating
-   **"⬇ Export to Archive (JSON)"** button. It downloads canonical-schema
-   JSON and tells you how many messages/entries it found.
-3. **Import into the app** — share the downloaded file to Conversation
-   Archive, or use Import Conversations and pick the file.
+1. **Log in once** — tap Gemini, AI Studio, or Jules on the home screen.
+   You sign in with your Google account on Google's own login pages, inside
+   the app. The login persists (WebView cookies), so you don't re-login
+   every time.
+2. **Tap "Save conversation"** — the floating button on the browser screen.
+   The app scrolls the page to load the full history (bounded, with a
+   progress indicator), reads the visible conversation, and saves it
+   straight into your library. Duplicates are detected and skipped.
+3. **Files the page offers for download** (e.g. an export) are intercepted,
+   saved to the app's private storage, and offered for one-tap import.
 
-Full per-site instructions are in
-`app/src/main/assets/userscript-guide.md` (also shown in-app).
+What the app NEVER does: it never reads password fields, never copies your
+cookies or tokens anywhere, and makes no network calls of its own except
+loading the three official sites (plus same-site file downloads the page
+itself offers). Credentials are typed by you into Google's pages only.
 
-Fallbacks if the userscript route doesn't suit you: import exports from
-third-party tools (Voyager JSON, aistudio-dump-script, and generic
-Gemini/AI Studio formats are recognized automatically), import a Google
-Takeout "My Activity > Gemini Apps" export (JSON), or import `.md` / `.txt`
-/ `.html` / `.pdf` files best-effort.
+**Login caveat (read this):** Google sometimes refuses sign-ins from
+embedded WebViews. The app presents a desktop-Chrome user agent as a
+documented workaround, but Google can change its behavior at any time. If a
+site won't log in inside the app, use the per-screen "Open in external
+browser" button and import the export — the v1.0 workflow below still works.
+
+## Fallback: userscript capture (v1.0 workflow)
+
+If the in-app browser doesn't suit you:
+
+1. Open the official site in your external browser (guide screens have
+   "Open site in browser" buttons).
+2. Export with a companion userscript (Tampermonkey/Violentmonkey in a
+   userscript-capable Android browser; see
+   `app/src/main/assets/userscript-guide.md`), which adds an
+   "Export to Archive (JSON)" button to the page.
+3. Share the downloaded JSON to Conversation Archive, or use Import
+   Conversations.
+
+Other fallbacks: import exports from third-party tools (Voyager JSON,
+aistudio-dump-script, and generic Gemini/AI Studio formats are recognized
+automatically), import a Google Takeout "My Activity > Gemini Apps" export
+(JSON), or import `.md` / `.txt` / `.html` / `.pdf` files best-effort.
 
 ## Features
 
+- **In-app browsers (v1.1):** Gemini, AI Studio, and Jules open inside the
+  app. Log in once with your Google account (login persists via WebView
+  cookies); tap "Save conversation" to archive the open chat/task with
+  duplicate detection. Page-offered downloads are intercepted and offered
+  for import. Each browser screen also offers "Open in external browser"
+  and the capture guide.
 - **Library:** browse conversations grouped by Gemini / AI Studio / Jules;
   search, filter by platform/date, sort, tag, favorite, add notes, rename.
 - **Detail view:** transcript with role labels, timestamps, code blocks,
@@ -52,19 +75,27 @@ Takeout "My Activity > Gemini Apps" export (JSON), or import `.md` / `.txt`
   pipeline so backups survive app/schema changes.
 - **Duplicates:** SHA-256 content-hash detection — duplicates are reported
   and skipped, with an explicit "import anyway" path.
-- **Privacy:** no accounts, no analytics, no network SDKs. The only network
-  use is firing an intent that opens an official site in *your* browser.
+- **Privacy:** no accounts, no analytics, no network SDKs. Since v1.1 the
+  app holds the INTERNET permission, used ONLY to load the three official
+  sites in the in-app browsers (and same-site downloads). Credentials are
+  typed into Google's pages only; the app never reads or transmits them.
 - **Theme:** Material3, light + dark (system default, manual override),
   dynamic color off by default.
 
 ## Honest limitations
 
-- **The userscripts are EXPERIMENTAL.** They capture only *rendered*
-  content — virtualized/scrolled-away messages, collapsed branches, and
-  login walls are out of reach. DOM selectors are Google-markup-dependent
-  and may break when layouts change; each script reports its found count so
-  misses are visible, not silent. Full per-script limits are documented in
-  each `.user.js` header and in `app/src/main/assets/userscript-guide.md`.
+- **In-app login is at Google's mercy.** Embedded-WebView logins sometimes
+  get refused or challenged by Google; the desktop-Chrome user agent is a
+  workaround, not a guarantee. If login fails in-app, the external-browser
+  + import fallback always works.
+- **The extractors are EXPERIMENTAL.** Both the in-app extractor
+  (`app/src/main/assets/extractor.js`) and the companion userscripts capture
+  only *rendered* content — virtualized/scrolled-away messages, collapsed
+  branches, and login walls are out of reach. DOM selectors are
+  Google-markup-dependent and may break when layouts change; the in-app
+  capture reports what it found, and failures say why instead of staying
+  silent. Full per-script limits are documented in each `.user.js` header
+  and in `app/src/main/assets/userscript-guide.md`.
 - **Per-platform capture limits:** AI Studio thought blocks, model name,
   temperature, and system instruction are best-effort. For Jules, activity-log
   contents, plan steps, per-entry timestamps, and diffs were not confirmed
@@ -74,11 +105,13 @@ Takeout "My Activity > Gemini Apps" export (JSON), or import `.md` / `.txt`
   fonts (WinAnsi). Non-WinAnsi Unicode characters are replaced with `?` in
   PDF output. All other formats preserve Unicode fully.
 - **UI testing:** the build machine has no Android emulator, so the UI is
-  covered by JVM unit tests, not instrumentation tests — the Compose UI is
-  built but not emulator-tested. Unit test results are in TEST_REPORT.md.
+  covered by JVM unit tests, not instrumentation tests — the Compose UI and
+  WebView screens are built but not emulator-tested. Unit test results are
+  in TEST_REPORT.md.
 - **Debug build:** APKs are DEBUG builds signed with the Android debug key,
   not production releases.
-- **Uninstall / Clear data deletes the archive.** Back up via Export and
+- **Uninstall / Clear data deletes the archive** (including saved logins —
+  you will need to sign in again after reinstalling). Back up via Export and
   Backup first (see "Uninstall / data clear" below).
 
 ## Install
@@ -132,9 +165,13 @@ conversation-archive/
       export/      # JSON/Markdown/TXT/HTML/PDF/ZIP exporters + filenames
       backup/      # SAF backup/restore manager
       ui/          # Compose screens (Home, Library, Detail, Import,
-                   #          Export, Backup, Settings, Platform guides)
+                   #          Export, Backup, Settings, Platform guides,
+                   #          in-app Browsers)
+        browser/   # WebView config, JS-bridge result parsing, download helper
       util/        # hashing, dates, IO
-    assets/userscript-guide.md # in-app capture guide
+    assets/
+      extractor.js         # injectable conversation extractor (v1.1)
+      userscript-guide.md  # in-app capture guide
     res/ AndroidManifest.xml
   dist/                        # built APKs go here
 ```
@@ -142,9 +179,14 @@ conversation-archive/
 ## Privacy
 
 - 100% local: no accounts, no analytics, no crash reporting, no ads.
-- No passwords, cookies, or tokens are ever requested, stored, or
-  transmitted — the userscripts run in *your* browser and only read what it
-  already shows; nothing is sent to us or anyone else.
+- Since v1.1 the app requests the INTERNET permission, used only to load
+  gemini.google.com, aistudio.google.com, and jules.google.com (plus
+  Google's login pages) in the in-app browsers, and to fetch same-site file
+  downloads the page itself offers. No other network calls are made.
+- No passwords, cookies, or tokens are ever requested by the app, read from
+  form fields, stored outside the WebView's own cookie jar, or transmitted
+  anywhere. You type credentials into Google's pages only; the extractor
+  reads only the conversation DOM you can already see.
 - Delete requires confirmation (single and multi-delete).
 
 ## Uninstall / data clear
@@ -180,4 +222,4 @@ only. No AGPL/GPL code is included in this project.
 
 ## Version
 
-1.0.0 — 2026-10-12.
+1.1.0 — 2026-10-13. (1.0.0 — 2026-10-12: first release, userscript-based capture.)

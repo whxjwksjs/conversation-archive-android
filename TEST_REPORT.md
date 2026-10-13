@@ -1,12 +1,14 @@
 # Conversation Archive — Test Report
 
-**Build:** v1.0.0 (versionCode 1), DEBUG-signed APKs, built 2026-10-12/13 on a
+**Build:** v1.1.0 (versionCode 2), DEBUG-signed APKs, built 2026-10-13 on a
 Linux VM (Temurin JDK 17, Android SDK platform-34 + build-tools 34.0.0,
-Gradle 8.7, AGP 8.5.2, Kotlin 1.9.24, kotlinx-serialization-json 1.6.3).
+Gradle 8.7 via the full install at ~/workspace/.gradle-dist/gradle-8.7 —
+see DECISIONS.md D13 — AGP 8.5.2, Kotlin 1.9.24,
+kotlinx-serialization-json 1.6.3).
 **Test command:** `./gradlew :app:testDebugUnitTest` (with the environment
-workarounds documented in DECISIONS.md D0–D0d).
+workarounds documented in DECISIONS.md D0–D0d, D13).
 
-## Unit tests — 84/84 PASS, 0 failures, 0 errors, 0 skipped
+## Unit tests — 98/98 PASS, 0 failures, 0 errors, 0 skipped
 
 | Suite | Tests | Result |
 |---|---|---|
@@ -16,12 +18,16 @@ workarounds documented in DECISIONS.md D0–D0d).
 | DuplicateDetectionTest | 3 | PASS |
 | ExporterTests | 9 | PASS |
 | FilenamesTest | 5 | PASS |
+| JsBridgeResultTest (new in v1.1) | 14 | PASS |
 | LargeConversationTest | 3 | PASS |
 | ParserTests | 14 | PASS |
 | PdfImporterTest | 7 | PASS |
 | PdfWriterTest | 8 | PASS |
 | RepositoryTest | 8 | PASS |
 | UnicodeRoundTripTest | 5 | PASS |
+
+v1.0.0 had 84/84 passing; v1.1.0 adds the 14-test JsBridgeResultTest suite
+and keeps all 84 green (no regressions).
 
 Coverage of the required test list:
 - ✅ App data model: canonical schema validation (lenient decode, unknown-field
@@ -56,6 +62,24 @@ Coverage of the required test list:
   “quotes”, —); non-WinAnsi chars (中文, 😀) correctly replaced with `?` as
   documented
 
+## v1.1 additions to coverage
+
+- ✅ JS-bridge result parsing (`JsBridgeResultTest`, 14 tests): valid
+  canonical payload round-trips through the evaluateJavascript string
+  encoding; `null`/empty bridge values → Empty; `{"__error"}` →
+  JsError; `{"__empty"}` → Empty with reason; malformed bridge values →
+  Malformed; extractor-shaped payload parses via `CanonicalParser` with
+  warnings only; unknown top-level fields land in `metadata`, unknown
+  message fields land in `raw`; empty message list is ok-with-warning.
+- ✅ Download allow-list (`DownloadHelper`): google.com https URLs accepted;
+  non-google hosts, plain http, and malformed URLs rejected; file names
+  from Content-Disposition/URL sanitized.
+- ✅ `assets/extractor.js` syntax-checked by loading it in the unit-test
+  JVM? No — it is plain browser JS and is NOT executed in tests. Its logic
+  mirrors the reviewed userscripts; the Kotlin side of the protocol is what
+  the tests cover. On-device behavior of the WebView screens is NOT tested
+  (see below).
+
 ## Real-bug fixes found by the test run (not test-only patches)
 
 1. `**User:**` regex capture-group indices (group 1 is the `**` delimiter).
@@ -77,13 +101,32 @@ Coverage of the required test list:
   device is available on the build VM. The following were verified by code
   review + unit tests only, not by running the app: activity launch, Compose
   navigation, Room database on-device, share-sheet/ACTION_VIEW intent handling,
-  Storage Access Framework pickers, and the companion userscripts against the
-  live sites (labeled EXPERIMENTAL).
+  Storage Access Framework pickers, the WebView browser screens (login flow,
+  cookie persistence, `evaluateJavascript` capture, DownloadListener), the
+  injected `extractor.js` against the live sites, and the companion
+  userscripts against the live sites (labeled EXPERIMENTAL).
 - **Userscript DOM extraction:** verified by code review against RESEARCH.md
   findings only; Google changes markup frequently, so selectors may need
   updates (each script logs its found-message count to make misses visible).
 
 ## APK verification (aapt / apksigner)
+
+### v1.1.0 (2026-10-13)
+
+- `convarchive-1.1.0-debug-arm64-v8a.apk` (15.8 MB) — apksigner: VERIFIED
+- `convarchive-1.1.0-debug-armeabi-v7a.apk` (15.8 MB) — apksigner: VERIFIED
+- `convarchive-1.1.0-debug-universal.apk` (15.8 MB) — apksigner: VERIFIED
+- All: `package='app.convarchive.debug' versionCode='2' versionName='1.1.0'`,
+  `sdkVersion:'26'`, `targetSdkVersion:'34'`; launchable activity
+  `app.convarchive.MainActivity`; label "Conversation Archive";
+  `android.permission.INTERNET` declared (new in v1.1, scoped to the in-app
+  browsers); signed with the Android debug key (`CN=Android Debug`).
+- The app contains no native `.so` libraries (pure Kotlin/JVM + Jetpack), so
+  the per-ABI APKs are byte-identical; the splits are still emitted per the
+  build config and each installs on its ABI. The universal APK runs on any
+  arm64 or arm32 device.
+
+### v1.0.0 (2026-10-12)
 
 - `convarchive-1.0.0-debug-arm64-v8a.apk` (15.7 MB) — apksigner: VERIFIED
 - `convarchive-1.0.0-debug-armeabi-v7a.apk` (15.7 MB) — apksigner: VERIFIED

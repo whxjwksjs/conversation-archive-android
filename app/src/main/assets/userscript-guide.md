@@ -1,5 +1,9 @@
 # Userscript capture guide — Conversation Archive
 
+> v1.1 note: the app now has in-app browsers (Gemini / AI Studio / Jules on
+> the home screen) with one-tap "Save conversation". This userscript guide
+> remains as the fallback if a site won't log in inside the app.
+
 The app cannot see inside your logged-in Google sessions, and it must never
 handle your passwords or cookies. So capture happens in your own browser,
 with a small companion userscript, and the app imports the file you get.

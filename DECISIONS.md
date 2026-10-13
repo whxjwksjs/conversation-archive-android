@@ -65,3 +65,27 @@
   "import anyway" path.
 - D9 (2026-10-12): APKs are DEBUG builds signed with the Android debug key.
   Stated in README, in-app About screen, and APK filenames.
+- D10 (2026-10-13, v1.1 in-app browsers): Added per-platform WebView screens
+  so the user logs in once inside the app and saves conversations with one
+  tap. Login persists via CookieManager (accept cookies + third-party
+  cookies, flush on pause). Desktop-Chrome user agent as a documented
+  workaround for Google's embedded-WebView login refusals; external-browser
+  + import remains the fallback. INTERNET permission added, scoped in the
+  manifest comment to the three official sites.
+- D11 (2026-10-13, v1.1 capture): One injectable `assets/extractor.js`
+  (shared helpers + per-platform extractors adapted from the userscripts,
+  no Tampermonkey APIs) instead of three separate injections. Bounded
+  auto-scroll (60 passes, ~65s timeout, cancellable) runs before extraction;
+  the JS returns the canonical JSON v1 string (or `{"__error"}` /
+  `{"__empty"}` markers), parsed in Kotlin by the pure-JVM `JsBridgeResult`
+  so the bridge protocol is unit-testable. Save goes through
+  `CanonicalParser` + `Repository.insert` — the same pipeline as imports,
+  so duplicate detection and validation behave identically.
+- D12 (2026-10-13, v1.1 downloads): WebView DownloadListener downloads are
+  restricted to `https://*.google.com` and reuse the WebView's session
+  cookies via CookieManager; files land in app-private cache and are offered
+  for import. The app never exfiltrates cookies/tokens anywhere.
+- D13 (2026-10-13, build): The Gradle wrapper cannot fetch its distribution
+  on this VM (stale/absent cache + proxy TLS interception), so builds use
+  the full Gradle 8.7 install at ~/workspace/.gradle-dist/gradle-8.7
+  directly. `gradlew` remains in the repo for normal machines.

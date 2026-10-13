@@ -92,13 +92,19 @@ app/src/main/java/app/convarchive/
                                  // conversation (+ raw originals). Restore re-imports.
   ui/
     theme/Theme.kt                // light/dark (system default + manual)
-    Nav.kt                        // routes
+    Nav.kt                        // routes (v1.1: + browser/{platform})
+    browser/
+      BrowserConfig.kt            // per-platform URLs, desktop-Chrome UA
+      JsBridgeResult.kt           // evaluateJavascript result parsing (pure JVM)
+      DownloadHelper.kt           // DownloadListener: google.com-only, cookie-authed
     screens/
-      HomeScreen.kt               // sections: Gemini, AI Studio, Jules,
-                                  // Saved Conversations, Import, Export & Backup,
-                                  // Settings
+      HomeScreen.kt               // sections: Gemini, AI Studio, Jules (v1.1:
+                                  //   open in-app browsers), Saved Conversations,
+                                  //   Import, Export & Backup, Settings
+      BrowserScreen.kt            // v1.1: in-app WebView + one-tap save + downloads
       PlatformGuideScreen.kt      // per platform: what capture can/can't do,
                                   // "Open site in browser", userscript install steps
+                                  // (v1.1: linked from each browser screen)
       LibraryScreen.kt            // search, filter platform/date, sort,
                                   // multi-select, actions
       DetailScreen.kt             // transcript view, tags/notes/favorite/rename
@@ -109,8 +115,10 @@ app/src/main/java/app/convarchive/
       SettingsScreen.kt           // theme, default export format, about/privacy
   util/
     Hashing.kt  Dates.kt  Io.kt   // small helpers
-  userscript/  (android assets)
-    install-guide.md              // in-app copy of install instructions
+  assets/
+    extractor.js                  // v1.1: injectable conversation extractor
+                                  // (gemini/aistudio/jules + bounded auto-scroll)
+    userscript-guide.md           // in-app copy of install instructions
 ```
 
 `userscripts/` (repo root, NOT in APK except the guide): three `.user.js`
@@ -132,7 +140,47 @@ companions, `@match`-scoped to their site only.
   personal archive; no FTS dependency).
 - All DB access via `Repository` on `Dispatchers.IO`.
 
-## 4. Capture design (honest)
+## 4. Capture design
+
+v1.1 adds in-app browsers (see §11); the userscript workflow below remains
+as the fallback.
+
+### 4a. In-app browsers with one-tap save (v1.1)
+
+Each platform has an in-app browser screen (`ui/screens/BrowserScreen.kt`,
+route `browser/{platform}`) hosting an Android WebView:
+
+- The user logs in with their Google account on Google's own pages inside
+  the WebView. Login persists via the WebView cookie store:
+  `CookieManager.setAcceptCookie(true)`, third-party cookies accepted on the
+  WebView, `CookieManager.flush()` on every app pause.
+- The WebView presents a desktop-Chrome user agent (documented workaround:
+  Google sometimes refuses logins from default embedded-WebView agents).
+- "Save conversation" (FAB) injects `assets/extractor.js` via
+  `evaluateJavascript`: a bounded auto-scroll loads virtualized history
+  (progress shown; 60-pass cap, ~65s timeout, cancellable), then the
+  platform extractor returns canonical JSON v1 as a string. Kotlin parses it
+  with `JsBridgeResult` → `CanonicalParser` → `Repository.insert` (normal
+  duplicate detection). Outcomes: saved / duplicate skipped / nothing found
+  with a reason / failed with a reason.
+- `DownloadListener` intercepts page-offered file downloads: restricted to
+  `https://*.google.com` URLs, fetched with the WebView's session cookies
+  into app-private cache, then offered for one-tap import through the
+  normal import pipeline.
+- Back button navigates WebView history; toolbar offers reload, "open in
+  external browser", and the capture guide.
+
+SECURITY (non-negotiable): credentials are typed by the user into Google's
+own pages only. The app never reads password fields, never copies cookies
+or tokens anywhere, and makes no network calls of its own except loading
+the three official sites (plus same-site downloads the page offers). The
+extractor reads only conversation DOM the user can already see.
+
+Caveat: Google may refuse or challenge embedded-WebView logins at any time;
+the desktop-UA is a workaround, not a guarantee. Fallback is always the
+v1.0 external-browser + import workflow (§4b).
+
+### 4b. Userscript workflow (v1.0, kept as fallback)
 
 Direct in-app DOM scraping is impossible without the user's login session, and
 the app MUST NOT harvest passwords, cookies, or tokens, or bypass auth.
@@ -210,19 +258,27 @@ as unavailable in the guide — never invented.
 
 ## 7. Privacy & data lifetime
 
-- 100% local. No accounts, no telemetry, no analytics, no crash reporting.
-  The only network use is firing an `ACTION_VIEW` intent to open official sites
-  in the user's own browser.
-- No passwords, cookies, or tokens are ever requested, stored, or transmitted.
+- Local-first. No accounts, no telemetry, no analytics, no crash reporting.
+  Since v1.1 the app holds the INTERNET permission, used ONLY by the in-app
+  browsers to load the three official sites (gemini.google.com,
+  aistudio.google.com, jules.google.com) and Google's login pages, plus
+  same-site file downloads the page itself offers. No other network calls.
+- No passwords, cookies, or tokens are ever requested by the app, read from
+  form fields, copied outside the WebView's own cookie jar, or transmitted
+  anywhere. The extractor reads only conversation DOM the user can already
+  see.
 - Delete requires confirmation; multi-delete too.
-- **Uninstall or Clear data deletes the archive.** The app says this in
-  Settings → Storage and before backup. Backup/restore via SAF zip is the
-  escape hatch; backups live wherever the user saves them.
+- **Uninstall or Clear data deletes the archive** (and saved logins — you
+  sign in again after reinstalling). The app says this in Settings →
+  Storage and before backup. Backup/restore via SAF zip is the escape hatch;
+  backups live wherever the user saves them.
 
 ## 8. UI/UX
 
-- Home sections exactly: Gemini, Google AI Studio, Google Jules,
-  Saved Conversations, Import Conversations, Export and Backup, Settings.
+- Home sections exactly: Gemini, Google AI Studio, Google Jules
+  (v1.1: these open the in-app browsers; the capture guides remain reachable
+  from each browser screen), Saved Conversations, Import Conversations,
+  Export and Backup, Settings.
 - Material3, dynamic color off by default (predictable), light + dark
   (system + manual override in Settings).
 - Every screen reachable from Home must be functional. Loading indicators on
