@@ -1,0 +1,30 @@
+// ============================================================================
+// Source: voyager-crew/voyager ("Voyager" enhancement suite for Gemini,
+//         AI Studio, Claude, ChatGPT, DeepSeek)
+//         https://github.com/voyager-crew/voyager
+// License: GPL-3.0 (strong copyleft; adaptation into the Conversation
+//         Archive app would require distributing full corresponding source
+//         under GPL-3.0. Write an original exporter instead of adapting.)
+// This fixture is an *authored* illustration of the JSON export schema shown
+// in the project's AGENTS.md (ConversationExportService.toJSON):
+//   { format: 'gemini-voyager.chat.v1', url, exportedAt, count, items }
+// NOT copied code or real user data. Per docs (voyager.nagi.fun/en/guide/export):
+//   - Formats: Markdown (images embedded), PDF (images included), JSON (images
+//     base64-encoded). Deep Research export includes thinking process + sources.
+//   - Works on Gemini and AI Studio, Chrome/Edge/Firefox/Safari/Opera/Brave.
+//   - 20,362 stars / 108 releases; actively maintained (GPLv3 (c) 2026).
+//   - Export implementation details (exact item fields, timestamps) were NOT
+//     line-by-line reviewed; treat item shape as approximate.
+// ============================================================================
+{
+  "format": "gemini-voyager.chat.v1",
+  "url": "https://gemini.google.com/app/abc123",
+  "exportedAt": "2026-10-12T19:00:00.000Z",
+  "count": 4,
+  "items": [
+    { "role": "user", "content": "Help me plan a 2-week trip to Japan." },
+    { "role": "assistant", "content": "Here's a suggested itinerary..." },
+    { "role": "user", "content": "What about food?" },
+    { "role": "assistant", "content": "Try ramen in Sapporo..." }
+  ]
+}

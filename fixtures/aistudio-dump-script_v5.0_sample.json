@@ -1,0 +1,31 @@
+// ============================================================================
+// Source: Tokisaki-Galaxy/aistudio-dump-script ("AI Studio Chat Exporter")
+//         https://github.com/Tokisaki-Galaxy/aistudio-dump-script
+// License: AGPL-3.0 (strong copyleft). Do NOT paste this project's code into
+//         the Conversation Archive app without complying with AGPL-3.0
+//         (source disclosure on distribution). This fixture is an *authored*
+//         illustration of the output schema, NOT copied code or real user data.
+// Schema verified from actual source (GreasyFork v5.0 code page, 2025-12-04):
+//   - @match https://aistudio.google.com/prompts/*  (@grant none)
+//   - scrolls ms-autoscroll-container, reads ms-chat-turn elements
+//   - role: 'user' default; 'assistant' if .model-prompt-container present
+//     or data-turn-role="Model"
+//   - MS-THOUGHT-CHUNK and BUTTON elements are EXPLICITLY SKIPPED in code
+//     (model "thoughts" are NOT exported despite marketing language)
+//   - system_instruction read from ms-system-instructions-panel .subtitle,
+//     falling back to ms-system-instruction-editor textarea
+//   - code blocks: MS-CODE-BLOCK -> ```lang ... ```
+//   - NO timestamps, NO attachments/images, NO message ids in output
+// ============================================================================
+{
+  "system_instruction": "You are a concise assistant. Answer in British English.",
+  "messages": [
+    { "role": "user", "content": "What is 17 * 23?" },
+    { "role": "assistant", "content": "391." },
+    { "role": "user", "content": "Show it in Python." },
+    {
+      "role": "assistant",
+      "content": "```python\nprint(17 * 23)\n```"
+    }
+  ]
+}

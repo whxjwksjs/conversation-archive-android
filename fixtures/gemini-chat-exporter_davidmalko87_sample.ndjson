@@ -1,0 +1,22 @@
+// ============================================================================
+// Source: davidmalko87/gemini-chat-exporter (userscript + Python toolkit)
+//         https://github.com/davidmalko87/gemini-chat-exporter
+// License: MIT (permissive; attribution required, reuse allowed).
+// This fixture is an *authored* illustration of the NDJSON capture schema
+// documented in the README ("one JSON conversation per line:
+// id, title, turns, source, flags"). NOT copied code or real user data.
+// Verified project facts (from README, 2026-06-27, v0.1.3):
+//   - Capture: Tampermonkey userscript clicks through every gemini.google.com
+//     conversation; streams to gemini_chats.ndjson; ~30-45 min for full
+//     history; tab must stay open and in front; resume supported.
+//   - Guards: content-identity validation (URL id + first prompt must match
+//     target and differ from previous), SHA-256 duplicate-body guard, loud
+//     failures ("DOM may have changed").
+//   - Process: python main.py --verify / --convert / --import-takeout /
+//     --reconcile against Takeout MyActivity.json.
+//   - Limitation acknowledged by author: page HTML has no conversation
+//     content (Angular SPA); scraper must drive the real logged-in UI.
+//   - Timestamps per message: not documented in the capture schema.
+// ============================================================================
+{"id": "c_abc123", "title": "Help me plan a trip to Japan", "source": "gemini.google.com", "flags": [], "turns": [{"role": "user", "content": "I'm planning a 2-week trip to Japan..."}, {"role": "assistant", "content": "Here's a suggested itinerary..."}]}
+{"id": "c_def456", "title": "Explain recursion", "source": "gemini.google.com", "flags": ["retried"], "turns": [{"role": "user", "content": "Explain recursion simply."}, {"role": "assistant", "content": "Recursion is when a function calls itself..."}]}

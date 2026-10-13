@@ -1,0 +1,43 @@
+// ============================================================================
+// Source: rmtd418/ai-studio-conversation-exporter
+//         https://github.com/rmtd418/ai-studio-conversation-exporter
+// License: MIT (per GitHub repo metadata; reuse/adaptation allowed with
+//         attribution).
+// *** INFERRED SCHEMA *** This sample is authored from the project's README
+// claims only; the extension source (background.js, content.js, page-bridge.js)
+// was NOT line-by-line reviewed, so field names below are approximate.
+// README-verified facts:
+//   - Method: intercepts ("reads") AI Studio's conversation resource *network
+//     request* instead of DOM scraping -> no scroll dependency, fast.
+//   - Formats: JSON, Markdown, TXT. Optional model-thought export.
+//   - JSON places the ordered conversation in `turns` and `entries`.
+//   - Order preserved: user message -> model thought -> model answer.
+//   - Multiple model responses and non-text user turns are kept (not dropped
+//     or overwritten).
+//   - Permissions: storage, downloads, tabs; host access limited to
+//     https://aistudio.google.com/*
+//   - Status: 1 commit (2026-08-05), 1 star, 0 releases. Effectively
+//     unmaintained; internal-request approach is robust to DOM churn but
+//     fragile to Google changing its internal API.
+// ============================================================================
+{
+  "turns": [
+    {
+      "user": "What is 17 * 23?",
+      "thought": "Simple arithmetic; 17*23 = 391.",
+      "responses": ["391."]
+    },
+    {
+      "user": "Show it in Python.",
+      "responses": ["```python\nprint(17 * 23)\n```", "Alternatively: `17*23` in a REPL."]
+    }
+  ],
+  "entries": [
+    { "role": "user", "content": "What is 17 * 23?" },
+    { "role": "thought", "content": "Simple arithmetic; 17*23 = 391." },
+    { "role": "assistant", "content": "391." },
+    { "role": "user", "content": "Show it in Python." },
+    { "role": "assistant", "content": "```python\nprint(17 * 23)\n```" },
+    { "role": "assistant", "content": "Alternatively: `17*23` in a REPL." }
+  ]
+}
