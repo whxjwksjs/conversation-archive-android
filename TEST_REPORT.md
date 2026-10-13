@@ -1,14 +1,33 @@
 # Conversation Archive — Test Report
 
-**Build:** v1.1.0 (versionCode 2), DEBUG-signed APKs, built 2026-10-13 on a
-Linux VM (Temurin JDK 17, Android SDK platform-34 + build-tools 34.0.0,
-Gradle 8.7 via the full install at ~/workspace/.gradle-dist/gradle-8.7 —
-see DECISIONS.md D13 — AGP 8.5.2, Kotlin 1.9.24,
-kotlinx-serialization-json 1.6.3).
+**Build:** v1.2.0 (versionCode 3). Source complete 2026-10-13; **APKs NOT
+built in this session** — the Gradle daemon TCP protocol is blocked by the
+runtime network sandbox for this agent (see DECISIONS.md D15). v1.1.0
+(versionCode 2) DEBUG-signed APKs were built 2026-10-13 on a Linux VM
+(Temurin JDK 17, Android SDK platform-34 + build-tools 34.0.0, Gradle 8.7
+via the full install at ~/workspace/.gradle-dist/gradle-8.7 — see
+DECISIONS.md D13 — AGP 8.5.2, Kotlin 1.9.24, kotlinx-serialization-json
+1.6.3).
 **Test command:** `./gradlew :app:testDebugUnitTest` (with the environment
-workarounds documented in DECISIONS.md D0–D0d, D13).
+workarounds documented in DECISIONS.md D0–D0d, D13). **Could not run in
+this session** (D15); v1.2.0's new pure-Kotlin logic was instead compiled
+and tested directly with kotlinc + JUnit from the Gradle cache (see below).
 
-## Unit tests — 98/98 PASS, 0 failures, 0 errors, 0 skipped
+## Unit tests — v1.2.0 new suite: 15/15 PASS (standalone kotlinc+JUnit run)
+
+| Suite | Tests | Result | How run |
+|---|---|---|---|
+| UserAgentModeTest (new in v1.2) | 15 | PASS | kotlinc + JUnit 4.13.2 directly (Gradle blocked, D15) |
+
+Covers: `; wv` stripping (real WebView UA → plain Chrome UA; no-token and
+empty UAs unchanged), STANDARD mode keeps genuine UA minus token,
+DESKTOP mode returns the desktop string, SYSTEM mode untouched, mode
+cycling STANDARD→DESKTOP→SYSTEM→STANDARD, block-page detection (the exact
+on-device "Couldn't sign you in" title, case-insensitivity, "may not be
+secure" variant, accounts.google.com error-title guard, null title and
+normal titles not flagged).
+
+## Unit tests — v1.1.0: 98/98 PASS, 0 failures, 0 errors, 0 skipped
 
 | Suite | Tests | Result |
 |---|---|---|
@@ -27,7 +46,12 @@ workarounds documented in DECISIONS.md D0–D0d, D13).
 | UnicodeRoundTripTest | 5 | PASS |
 
 v1.0.0 had 84/84 passing; v1.1.0 adds the 14-test JsBridgeResultTest suite
-and keeps all 84 green (no regressions).
+and keeps all 84 green (no regressions). **The full 98-test suite plus the
+15 new v1.2.0 tests (113 total) still need one `./gradlew
+:app:testDebugUnitTest` run wherever the network policy allows it** — the
+v1.2.0 UI changes (BrowserScreen dialog, Settings toggle) are
+compile-unverified in this session (reviewed by hand; the new logic they
+depend on is covered by the 15 passing tests).
 
 Coverage of the required test list:
 - ✅ App data model: canonical schema validation (lenient decode, unknown-field

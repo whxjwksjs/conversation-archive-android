@@ -89,3 +89,32 @@
   on this VM (stale/absent cache + proxy TLS interception), so builds use
   the full Gradle 8.7 install at ~/workspace/.gradle-dist/gradle-8.7
   directly. `gradlew` remains in the repo for normal machines.
+- D14 (2026-10-13, v1.2.0 sign-in fix): On-device report: Google shows
+  "Couldn't sign you in / This browser or app may not be secure" in the
+  in-app WebView. Web research: Google detects embedded WebViews via the
+  `; wv` UA token; the community-standard fix is to strip only that token
+  and keep the genuine mobile-Chrome UA. The v1.1 desktop-Chrome spoof is
+  now counterproductive (mismatched UA + inconsistent client hints trips
+  bot detection). Implementation: new pure-Kotlin `ui/browser/UserAgentMode.kt`
+  (`stripWebViewToken`, `userAgentForMode`, `nextUserAgentMode`,
+  `isSignInBlockPage` heuristics, labels/descriptions) — pure so the
+  logic is unit-testable without Android. Persisted UA mode in the existing
+  SharedPreferences `SettingsStore` (STANDARD default). `BrowserScreen`
+  applies the mode at WebView creation, re-applies on resume if the setting
+  changed, and detects the block page in `onPageFinished` (title match) with
+  an in-app dialog: Try another mode (cycles + reloads) / External browser
+  / Dismiss. DESKTOP_CHROME_UA kept as a fallback mode only. Cookie
+  persistence, capture, downloads untouched.
+- D15 (2026-10-13, build env): The Gradle daemon protocol is broken for this
+  agent session: the runtime's network sandbox intercepts the client's TCP
+  connection to the daemon's localhost port and replies
+  "muse: Other TCP connections is turned off for this assistant... switch
+  other_tcp from Deny to Ask" (captured via strace; the client then fails
+  with "Unexpected type tag 109"). `gradle help` fails even in an empty
+  directory, so this is environmental, not project-related. Workaround used:
+  the pure-Kotlin v1.2.0 logic (`UserAgentMode.kt`) was compiled and its
+  15 unit tests run directly with kotlinc + JUnit from the Gradle cache —
+  all pass. Full `./gradlew :app:testDebugUnitTest`, APK assembly, and
+  aapt/apksigner verification could NOT be run in this session; they must
+  run wherever the network policy allows (the parent's environment or after
+  the user flips the setting).

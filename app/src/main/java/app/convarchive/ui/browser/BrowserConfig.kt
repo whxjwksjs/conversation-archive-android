@@ -42,13 +42,15 @@ fun browserPlatformFor(slug: String): BrowserPlatform =
     BROWSER_PLATFORMS.firstOrNull { it.slug == slug } ?: BROWSER_PLATFORMS.first()
 
 /**
- * Desktop Chrome user-agent used by the in-app WebViews.
+ * Desktop Chrome user-agent, kept as a fallback UA mode (v1.2.0).
  *
- * Documented workaround: Google's login pages sometimes refuse or degrade
- * sign-in from the default embedded-WebView user agent. Presenting as desktop
- * Chrome makes the normal Google login flow work inside the app. This is not
- * guaranteed forever — if Google starts blocking it, the fallback is "Open in
- * external browser" + import (the v1.0 workflow, still supported).
+ * v1.1 set this as the WebView UA by default as a workaround for Google's
+ * embedded-WebView sign-in block. On-device testing (2026-10-13) showed the
+ * block persisting ("Couldn't sign you in / This browser or app may not be
+ * secure"): a spoofed desktop UA with inconsistent client hints is what
+ * trips Google's bot detection now, so the default is the honest UA with
+ * only `; wv` stripped (see UserAgentMode.STANDARD). This string remains
+ * available as the DESKTOP fallback mode.
  */
 const val DESKTOP_CHROME_UA =
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +

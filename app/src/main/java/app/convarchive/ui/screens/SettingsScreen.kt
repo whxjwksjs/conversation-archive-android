@@ -38,6 +38,9 @@ import app.convarchive.BuildConfig
 import app.convarchive.ConvArchiveApp
 import app.convarchive.export.ExportFormat
 import app.convarchive.ui.SettingsStore
+import app.convarchive.ui.browser.UserAgentMode
+import app.convarchive.ui.browser.userAgentModeDescription
+import app.convarchive.ui.browser.userAgentModeLabel
 import app.convarchive.ui.components.ScreenScaffold
 import app.convarchive.ui.theme.ThemeMode
 import kotlinx.coroutines.Dispatchers
@@ -124,6 +127,47 @@ fun SettingsScreen(navController: NavController, vm: SettingsViewModel = viewMod
                             },
                         )
                         Text("${format.label} (.${format.ext})")
+                    }
+                }
+            }
+
+            SettingsSection(title = "In-app browser") {
+                Text(
+                    "Google sometimes refuses sign-in inside embedded app browsers. " +
+                        "This controls what browser identity the in-app Gemini / AI Studio / " +
+                        "Jules browsers present. If sign-in is blocked, the browser screen " +
+                        "itself offers to try another mode.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(4.dp))
+                var uaMode by rememberUaMode()
+                UserAgentMode.entries.forEach { mode ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                uaMode = mode
+                                SettingsStore.setUserAgentMode(context, mode)
+                            }
+                            .padding(vertical = 4.dp),
+                    ) {
+                        RadioButton(
+                            selected = uaMode == mode,
+                            onClick = {
+                                uaMode = mode
+                                SettingsStore.setUserAgentMode(context, mode)
+                            },
+                        )
+                        Column {
+                            Text(userAgentModeLabel(mode))
+                            Text(
+                                userAgentModeDescription(mode),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     }
                 }
             }
@@ -238,5 +282,14 @@ private fun rememberDefaultFormat(): MutableState<ExportFormat> {
     val context = LocalContext.current
     return remember {
         mutableStateOf(SettingsStore.getDefaultExportFormat(context))
+    }
+}
+
+/** Remembers the persisted in-app browser user-agent mode (v1.2.0). */
+@Composable
+private fun rememberUaMode(): MutableState<UserAgentMode> {
+    val context = LocalContext.current
+    return remember {
+        mutableStateOf(SettingsStore.getUserAgentMode(context))
     }
 }

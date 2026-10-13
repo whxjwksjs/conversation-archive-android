@@ -2,6 +2,7 @@ package app.convarchive.ui
 
 import android.content.Context
 import app.convarchive.export.ExportFormat
+import app.convarchive.ui.browser.UserAgentMode
 import app.convarchive.ui.theme.ThemeMode
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -10,6 +11,7 @@ import kotlinx.coroutines.flow.asStateFlow
 private const val PREFS = "settings"
 private const val KEY_THEME_MODE = "theme_mode"
 private const val KEY_DEFAULT_EXPORT_FORMAT = "default_export_format"
+private const val KEY_UA_MODE = "ua_mode"
 
 /**
  * App settings backed by SharedPreferences ("settings").
@@ -47,5 +49,18 @@ object SettingsStore {
     fun setDefaultExportFormat(context: Context, format: ExportFormat) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit().putString(KEY_DEFAULT_EXPORT_FORMAT, format.name).apply()
+    }
+
+    /** User-agent mode for the in-app browsers (v1.2.0). Defaults to STANDARD. */
+    fun getUserAgentMode(context: Context): UserAgentMode {
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        return runCatching {
+            UserAgentMode.valueOf(prefs.getString(KEY_UA_MODE, UserAgentMode.STANDARD.name)!!)
+        }.getOrDefault(UserAgentMode.STANDARD)
+    }
+
+    fun setUserAgentMode(context: Context, mode: UserAgentMode) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit().putString(KEY_UA_MODE, mode.name).apply()
     }
 }

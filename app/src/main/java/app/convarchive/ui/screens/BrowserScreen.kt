@@ -14,6 +14,7 @@ import android.webkit.WebViewClient
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -54,11 +55,16 @@ import app.convarchive.ConvArchiveApp
 import app.convarchive.model.parsers.CanonicalParser
 import app.convarchive.model.parsers.ParserRegistry
 import app.convarchive.ui.Routes
+import app.convarchive.ui.SettingsStore
 import app.convarchive.ui.browser.BridgeOutcome
-import app.convarchive.ui.browser.DESKTOP_CHROME_UA
 import app.convarchive.ui.browser.DownloadHelper
 import app.convarchive.ui.browser.JsBridgeResult
+import app.convarchive.ui.browser.UserAgentMode
 import app.convarchive.ui.browser.browserPlatformFor
+import app.convarchive.ui.browser.isSignInBlockPage
+import app.convarchive.ui.browser.nextUserAgentMode
+import app.convarchive.ui.browser.userAgentForMode
+import app.convarchive.ui.browser.userAgentModeLabel
 import app.convarchive.ui.components.ScreenScaffold
 import java.io.File
 import kotlinx.coroutines.Dispatchers
@@ -128,6 +134,11 @@ fun BrowserScreen(navController: NavController, platform: String) {
     var captureResult by remember { mutableStateOf<CaptureResult?>(null) }
     var downloadedFile by remember { mutableStateOf<File?>(null) }
     var downloadBusy by remember { mutableStateOf<String?>(null) }
+    // v1.2.0: UA mode handling + Google sign-in block detection.
+    var systemDefaultUa by remember { mutableStateOf<String?>(null) }
+    var appliedUaMode by remember { mutableStateOf<UserAgentMode?>(null) }
+    var showBlockDialog by remember { mutableStateOf(false) }
+    var lastBlockDialogUrl by remember { mutableStateOf<String?>(null) }
 
     val extractorJs = remember {
         runCatching {
@@ -148,7 +159,14 @@ fun BrowserScreen(navController: NavController, platform: String) {
             settings.mediaPlaybackRequiresUserGesture = false
             settings.loadWithOverviewMode = true
             settings.useWideViewPort = true
-            settings.userAgentString = DESKTOP_CHROME_UA
+            // v1.2.0: apply the persisted UA mode. Read the system default
+            // FIRST, then override — STANDARD mode needs the genuine UA
+            // with only the "; wv" WebView marker stripped.
+            val sysUa = settings.userAgentString
+            systemDefaultUa = sysUa
+            val mode = SettingsStore.getUserAgentMode(context)
+            appliedUaMode = mode
+            settings.userAgentString = userAgentForMode(mode, sysUa)
             webViewClient = object : WebViewClient() {
                 override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) {
                     pageError = null
@@ -156,6 +174,13 @@ fun BrowserScreen(navController: NavController, platform: String) {
 
                 override fun onPageFinished(view: WebView, url: String) {
                     canGoBack = view.canGoBack()
+                    // v1.2.0: detect Google's embedded sign-in block and offer
+                    // recovery instead of leaving a dead page. Show at most
+                    // once per URL (dismissing is sticky until navigation).
+                    if (url != lastBlockDialogUrl && isSignInBlockPage(view.title, url)) {
+                        lastBlockDialogUrl = url
+                        showBlockDialog = true
+                    }
                 }
 
                 override fun onReceivedError(
@@ -198,7 +223,8 @@ fun BrowserScreen(navController: NavController, platform: String) {
     }
 
     // Pause/resume the WebView with the lifecycle; flush cookies on pause so
-    // the login survives app restarts.
+    // the login survives app restarts. On resume, re-apply the UA mode in
+    // case the user changed it in Settings while this screen was away.
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
@@ -206,7 +232,19 @@ fun BrowserScreen(navController: NavController, platform: String) {
                     webView.onPause()
                     CookieManager.getInstance().flush()
                 }
-                Lifecycle.Event.ON_RESUME -> webView.onResume()
+                Lifecycle.Event.ON_RESUME -> {
+                    webView.onResume()
+                    val sysUa = systemDefaultUa
+                    if (sysUa != null) {
+                        val current = SettingsStore.getUserAgentMode(context)
+                        if (current != appliedUaMode) {
+                            appliedUaMode = current
+                            webView.settings.userAgentString = userAgentForMode(current, sysUa)
+                            lastBlockDialogUrl = null
+                            webView.reload()
+                        }
+                    }
+                }
                 else -> Unit
             }
         }
@@ -399,6 +437,21 @@ fun BrowserScreen(navController: NavController, platform: String) {
         }
     }
 
+    /** v1.2.0: switch to the next UA mode, persist it, re-apply, reload. */
+    fun cycleUaModeAndReload() {
+        val sysUa = systemDefaultUa ?: return
+        val next = nextUserAgentMode(SettingsStore.getUserAgentMode(context))
+        SettingsStore.setUserAgentMode(context, next)
+        appliedUaMode = next
+        webView.settings.userAgentString = userAgentForMode(next, sysUa)
+        lastBlockDialogUrl = null
+        showBlockDialog = false
+        webView.reload()
+        scope.launch {
+            snackbar.showSnackbar("Browser mode: ${userAgentModeLabel(next)} — reloading")
+        }
+    }
+
     if (capturing) {
         AlertDialog(
             onDismissRequest = { /* must use Cancel */ },
@@ -458,6 +511,42 @@ fun BrowserScreen(navController: NavController, platform: String) {
                         captureResult = null
                         navController.navigate(Routes.detail(viewId))
                     }) { Text("View") }
+                }
+            },
+        )
+    }
+
+    // v1.2.0: Google's "Couldn't sign you in" block, detected in
+    // onPageFinished. Offers recovery instead of a dead page.
+    if (showBlockDialog) {
+        AlertDialog(
+            onDismissRequest = { showBlockDialog = false },
+            title = { Text("Google refused the sign-in") },
+            text = {
+                Text(
+                    "Google blocked sign-in inside the app's browser " +
+                        "(\"This browser or app may not be secure\"). Your " +
+                        "password was never sent anywhere — the block happens " +
+                        "before any sign-in. Try another browser mode, or open " +
+                        "the site in your regular browser instead."
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { cycleUaModeAndReload() }) {
+                    Text("Try another mode")
+                }
+            },
+            dismissButton = {
+                Row {
+                    TextButton(onClick = {
+                        showBlockDialog = false
+                        context.startActivity(
+                            Intent(Intent.ACTION_VIEW, Uri.parse(webView.url ?: info.url))
+                        )
+                    }) { Text("External browser") }
+                    TextButton(onClick = { showBlockDialog = false }) {
+                        Text("Dismiss")
+                    }
                 }
             },
         )

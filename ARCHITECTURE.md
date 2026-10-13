@@ -94,7 +94,7 @@ app/src/main/java/app/convarchive/
     theme/Theme.kt                // light/dark (system default + manual)
     Nav.kt                        // routes (v1.1: + browser/{platform})
     browser/
-      BrowserConfig.kt            // per-platform URLs, desktop-Chrome UA
+      BrowserConfig.kt            // per-platform URLs (+ desktop-Chrome UA fallback string)
       JsBridgeResult.kt           // evaluateJavascript result parsing (pure JVM)
       DownloadHelper.kt           // DownloadListener: google.com-only, cookie-authed
     screens/
@@ -154,8 +154,13 @@ route `browser/{platform}`) hosting an Android WebView:
   the WebView. Login persists via the WebView cookie store:
   `CookieManager.setAcceptCookie(true)`, third-party cookies accepted on the
   WebView, `CookieManager.flush()` on every app pause.
-- The WebView presents a desktop-Chrome user agent (documented workaround:
-  Google sometimes refuses logins from default embedded-WebView agents).
+- The WebView uses a configurable browser identity (v1.2.0,
+  `ui/browser/UserAgentMode.kt`): STANDARD (default) presents the genuine
+  mobile-Chrome UA with only the `; wv` WebView marker stripped —
+  the community-standard fix for Google's embedded-WebView sign-in block;
+  DESKTOP (the old v1.1 desktop-Chrome string) and SYSTEM (untouched UA)
+  remain as fallbacks, switchable in Settings → In-app browser. The mode
+  is applied at WebView creation and re-applied on resume if changed.
 - "Save conversation" (FAB) injects `assets/extractor.js` via
   `evaluateJavascript`: a bounded auto-scroll loads virtualized history
   (progress shown; 60-pass cap, ~65s timeout, cancellable), then the
@@ -176,9 +181,12 @@ or tokens anywhere, and makes no network calls of its own except loading
 the three official sites (plus same-site downloads the page offers). The
 extractor reads only conversation DOM the user can already see.
 
-Caveat: Google may refuse or challenge embedded-WebView logins at any time;
-the desktop-UA is a workaround, not a guarantee. Fallback is always the
-v1.0 external-browser + import workflow (§4b).
+Caveat: Google may refuse or challenge embedded-WebView logins at any time.
+The browser screen detects Google's "Couldn't sign you in" block page
+(title heuristic in `onPageFinished`) and shows an in-app dialog: Try
+another mode (cycles STANDARD → DESKTOP → SYSTEM and reloads), open in
+external browser, or dismiss. Fallback is always the v1.0
+external-browser + import workflow (§4b).
 
 ### 4b. Userscript workflow (v1.0, kept as fallback)
 

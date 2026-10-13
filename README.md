@@ -1,6 +1,6 @@
 # Conversation Archive
 
-**Version 1.1.0 — 2026-10-13.** A 100%-local Android app that archives
+**Version 1.2.0 — 2026-10-13.** A 100%-local Android app that archives
 conversations from **Gemini** (gemini.google.com), **Google AI Studio**
 (aistudio.google.com), and **Google Jules** (jules.google.com) into one
 searchable, exportable personal library. No accounts, no telemetry, no
@@ -28,8 +28,16 @@ loading the three official sites (plus same-site file downloads the page
 itself offers). Credentials are typed by you into Google's pages only.
 
 **Login caveat (read this):** Google sometimes refuses sign-ins from
-embedded WebViews. The app presents a desktop-Chrome user agent as a
-documented workaround, but Google can change its behavior at any time. If a
+embedded WebViews ("Couldn't sign you in / This browser or app may not be
+secure"). Since v1.2.0 the app's default browser identity is your *genuine*
+mobile-Chrome user agent with only the `; wv` WebView marker stripped —
+the community-standard fix (a May 2026 report from a shipped app found
+Google relaxed the block for honest WebViews, while spoofed desktop UAs
+with inconsistent client hints now trip bot detection). If Google still
+blocks you, the browser screen detects the block page itself and offers
+three options: **Try another mode** (cycles Standard → Desktop → System
+default and reloads), **External browser**, or Dismiss. A persistent
+browser-identity setting also lives under Settings → In-app browser. If a
 site won't log in inside the app, use the per-screen "Open in external
 browser" button and import the export — the v1.0 workflow below still works.
 
@@ -85,9 +93,12 @@ automatically), import a Google Takeout "My Activity > Gemini Apps" export
 ## Honest limitations
 
 - **In-app login is at Google's mercy.** Embedded-WebView logins sometimes
-  get refused or challenged by Google; the desktop-Chrome user agent is a
-  workaround, not a guarantee. If login fails in-app, the external-browser
-  + import fallback always works.
+  get refused or challenged by Google. Since v1.2.0 the default is the
+  honest UA with only `; wv` stripped (Standard mode); Desktop (the old
+  v1.1 spoof) and System default remain as fallbacks, switchable in
+  Settings → In-app browser or via the on-page "Try another mode" dialog
+  that appears when the block is detected. If login fails in-app, the
+  external-browser + import fallback always works.
 - **The extractors are EXPERIMENTAL.** Both the in-app extractor
   (`app/src/main/assets/extractor.js`) and the companion userscripts capture
   only *rendered* content — virtualized/scrolled-away messages, collapsed
@@ -222,4 +233,4 @@ only. No AGPL/GPL code is included in this project.
 
 ## Version
 
-1.1.0 — 2026-10-13. (1.0.0 — 2026-10-12: first release, userscript-based capture.)
+1.2.0 — 2026-10-13. (1.1.0 — 2026-10-13: in-app browsers + one-tap capture. 1.0.0 — 2026-10-12: first release, userscript-based capture.)
