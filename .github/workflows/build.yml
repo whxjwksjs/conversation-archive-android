@@ -38,6 +38,15 @@ jobs:
         with:
           gradle-version: 8.7
 
+      - name: Diagnose repository reachability
+        run: |
+          echo "--- google maven AGP pom ---"
+          curl -sS -o /dev/null -w "%{http_code} %{url_effective}\n" https://dl.google.com/dl/android/maven2/com/android/tools/build/gradle/8.5.2/gradle-8.5.2.pom || echo "CURL FAILED for google maven"
+          echo "--- gradle plugin portal marker pom ---"
+          curl -sS -o /dev/null -w "%{http_code} %{url_effective}\n" https://plugins.gradle.org/m2/com/android/application/com.android.application.gradle.plugin/8.5.2/com.android.application.gradle.plugin-8.5.2.pom || echo "CURL FAILED for plugin portal"
+          echo "--- sdkmanager repo (known good) ---"
+          curl -sS -o /dev/null -w "%{http_code} %{url_effective}\n" https://dl.google.com/android/repository/repository2-1.xml || echo "CURL FAILED for sdk repo"
+
       - name: Run unit tests
         run: gradle :app:testDebugUnitTest
 
