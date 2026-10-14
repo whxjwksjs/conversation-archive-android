@@ -41,17 +41,6 @@ jobs:
           unzip -q -o /tmp/gradle-8.7-bin.zip -d "$HOME/gradle-installs"
           echo "$HOME/gradle-installs/gradle-8.7/bin" >> "$GITHUB_PATH"
 
-      - name: Fix Gradle proxy config
-        run: |
-          mkdir -p ~/.gradle
-          if [ -f ~/.gradle/gradle.properties ]; then
-            grep -viE "proxy" ~/.gradle/gradle.properties > /tmp/gp.tmp || true
-            cp /tmp/gp.tmp ~/.gradle/gradle.properties
-            echo "Stripped proxy settings from ~/.gradle/gradle.properties"
-          else
-            echo "No ~/.gradle/gradle.properties found"
-          fi
-
       - name: Run unit tests
         run: gradle :app:testDebugUnitTest
 
