@@ -1,6 +1,8 @@
 package app.convarchive.ui.screens
 
 import android.app.Application
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -36,6 +38,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -63,29 +66,39 @@ private data class PlatformCard(
     val slug: String,
     val name: String,
     val description: String,
+    val url: String,
 )
 
 private val platforms = listOf(
     PlatformCard(
         "gemini",
         "Gemini",
-        "Browse Gemini in the app, stay logged in, and save chats with one tap.",
+        "Open the full Gemini site in your browser. Export chats, then import them into your archive.",
+        "https://gemini.google.com/",
     ),
     PlatformCard(
         "aistudio",
         "Google AI Studio",
-        "Browse AI Studio in the app, stay logged in, and save prompts with one tap.",
+        "Open AI Studio in your browser. Embedded browsers may block sign-in or fail to load chats.",
+        "https://aistudio.google.com/",
     ),
     PlatformCard(
         "jules",
         "Google Jules",
-        "Browse Jules in the app, stay logged in, and save tasks with one tap.",
+        "Open Jules in your browser for the most reliable sign-in and task view.",
+        "https://jules.google.com/",
     ),
 )
 
 @Composable
 fun HomeScreen(navController: NavController, vm: HomeViewModel = viewModel()) {
+    val context = LocalContext.current
     LaunchedEffect(Unit) { vm.refresh() }
+
+    fun openExternal(url: String) {
+        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+    }
+
     ScreenScaffold(
         title = "Conversation Archive",
         navController = navController,
@@ -99,7 +112,6 @@ fun HomeScreen(navController: NavController, vm: HomeViewModel = viewModel()) {
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            // Capture banner.
             Surface(
                 color = MaterialTheme.colorScheme.primaryContainer,
                 shape = MaterialTheme.shapes.medium,
@@ -115,9 +127,9 @@ fun HomeScreen(navController: NavController, vm: HomeViewModel = viewModel()) {
                     )
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        text = "Each service opens in an in-app browser \u2014 log in once " +
-                            "with your Google account and tap \u201cSave conversation\u201d " +
-                            "on any chat or task.",
+                        text = "Google may block sign-in or chat loading inside embedded browsers. " +
+                            "Open the full site in your regular browser first. The in-app view " +
+                            "remains available as a fallback; imported exports are saved locally.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
                     )
@@ -129,8 +141,16 @@ fun HomeScreen(navController: NavController, vm: HomeViewModel = viewModel()) {
                     icon = Icons.Filled.Description,
                     title = platform.name,
                     description = platform.description,
-                    actionLabel = "Open in app",
-                    onClick = { navController.navigate(Routes.browser(platform.slug)) },
+                    actionLabel = "Open website",
+                    onClick = { openExternal(platform.url) },
+                    secondaryActionLabel = "In-app view",
+                    onSecondaryClick = {
+                        navController.navigate(Routes.browser(platform.slug))
+                    },
+                    extraActionLabel = "Capture guide",
+                    onExtraClick = {
+                        navController.navigate(Routes.guide(platform.slug))
+                    },
                 )
             }
 
@@ -198,6 +218,10 @@ private fun HomeCard(
     description: String,
     actionLabel: String,
     onClick: () -> Unit,
+    secondaryActionLabel: String? = null,
+    onSecondaryClick: (() -> Unit)? = null,
+    extraActionLabel: String? = null,
+    onExtraClick: (() -> Unit)? = null,
 ) {
     Card(
         modifier = Modifier
@@ -223,11 +247,29 @@ private fun HomeCard(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                TextButton(
-                    onClick = onClick,
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp),
-                ) {
-                    Text(actionLabel)
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    TextButton(
+                        onClick = onClick,
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp),
+                    ) {
+                        Text(actionLabel)
+                    }
+                    if (secondaryActionLabel != null && onSecondaryClick != null) {
+                        TextButton(
+                            onClick = onSecondaryClick,
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp),
+                        ) {
+                            Text(secondaryActionLabel)
+                        }
+                    }
+                    if (extraActionLabel != null && onExtraClick != null) {
+                        TextButton(
+                            onClick = onExtraClick,
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp),
+                        ) {
+                            Text(extraActionLabel)
+                        }
+                    }
                 }
             }
         }
