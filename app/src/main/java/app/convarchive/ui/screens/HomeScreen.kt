@@ -247,27 +247,31 @@ private fun HomeCard(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    TextButton(
-                        onClick = onClick,
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp),
-                    ) {
-                        Text(actionLabel)
-                    }
-                    if (secondaryActionLabel != null && onSecondaryClick != null) {
-                        TextButton(
-                            onClick = onSecondaryClick,
-                            contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp),
-                        ) {
-                            Text(secondaryActionLabel)
+                TextButton(
+                    onClick = onClick,
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp),
+                ) {
+                    Text(actionLabel)
+                }
+                if ((secondaryActionLabel != null && onSecondaryClick != null) ||
+                    (extraActionLabel != null && onExtraClick != null)
+                ) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (secondaryActionLabel != null && onSecondaryClick != null) {
+                            TextButton(
+                                onClick = onSecondaryClick,
+                                contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp),
+                            ) {
+                                Text(secondaryActionLabel)
+                            }
                         }
-                    }
-                    if (extraActionLabel != null && onExtraClick != null) {
-                        TextButton(
-                            onClick = onExtraClick,
-                            contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp),
-                        ) {
-                            Text(extraActionLabel)
+                        if (extraActionLabel != null && onExtraClick != null) {
+                            TextButton(
+                                onClick = onExtraClick,
+                                contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp),
+                            ) {
+                                Text(extraActionLabel)
+                            }
                         }
                     }
                 }
