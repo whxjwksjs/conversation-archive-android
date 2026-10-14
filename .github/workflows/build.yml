@@ -41,37 +41,16 @@ jobs:
           unzip -q -o /tmp/gradle-8.7-bin.zip -d "$HOME/gradle-installs"
           echo "$HOME/gradle-installs/gradle-8.7/bin" >> "$GITHUB_PATH"
 
-      - name: Diagnose Gradle plugin resolution
+      - name: Fix Gradle proxy config
         run: |
-          echo "--- Java network test ---"
-          mkdir -p /tmp/jtest
-          cat > /tmp/jtest/FetchTest.java <<'JAVAEOF'
-          import java.net.*;
-          public class FetchTest {
-              public static void main(String[] a) throws Exception {
-                  String[] urls = {
-                      "https://dl.google.com/dl/android/maven2/com/android/tools/build/gradle/8.5.2/gradle-8.5.2.pom",
-                      "https://repo1.maven.org/maven2/junit/junit/4.13.2/junit-4.13.2.pom"
-                  };
-                  for (String u : urls) {
-                      try {
-                          HttpURLConnection c = (HttpURLConnection) new URL(u).openConnection();
-                          c.setConnectTimeout(15000);
-                          c.setReadTimeout(15000);
-                          c.setRequestProperty("User-Agent", "Gradle/8.7");
-                          System.out.println(c.getResponseCode() + " " + u);
-                      } catch (Exception e) {
-                          System.out.println("FAILED " + u + " : " + e);
-                      }
-                  }
-              }
-          }
-          JAVAEOF
-          javac -d /tmp/jtest /tmp/jtest/FetchTest.java && java -cp /tmp/jtest FetchTest
-          echo "--- Gradle --debug plugin resolution ---"
-          gradle help --debug > /tmp/gradle-debug.log 2>&1 || true
-          grep -iE "Resource missing|HTTP|Could not|status code|dl.google.com|repo1.maven" /tmp/gradle-debug.log | head -60 || true
-          echo "--- end diagnostic ---"
+          mkdir -p ~/.gradle
+          if [ -f ~/.gradle/gradle.properties ]; then
+            grep -viE "proxy" ~/.gradle/gradle.properties > /tmp/gp.tmp || true
+            cp /tmp/gp.tmp ~/.gradle/gradle.properties
+            echo "Stripped proxy settings from ~/.gradle/gradle.properties"
+          else
+            echo "No ~/.gradle/gradle.properties found"
+          fi
 
       - name: Run unit tests
         run: gradle :app:testDebugUnitTest
