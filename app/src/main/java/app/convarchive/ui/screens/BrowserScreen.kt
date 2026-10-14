@@ -5,6 +5,10 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Build
+import android.util.Log
+import android.webkit.ConsoleMessage
+import android.webkit.RenderProcessGoneDetail
+import android.webkit.WebChromeClient
 import android.webkit.CookieManager
 import android.webkit.DownloadListener
 import android.webkit.WebResourceError
@@ -30,6 +34,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -139,6 +144,11 @@ fun BrowserScreen(navController: NavController, platform: String) {
     var appliedUaMode by remember { mutableStateOf<UserAgentMode?>(null) }
     var showBlockDialog by remember { mutableStateOf(false) }
     var lastBlockDialogUrl by remember { mutableStateOf<String?>(null) }
+    // v1.2.1: loading progress + renderer crash handling. Google's SPAs are
+    // heavy; without a progress indicator a slow load looks identical to a
+    // broken page, and a dead renderer used to leave a permanent black screen.
+    var loadProgress by remember { mutableStateOf(0) }
+    var rendererCrashed by remember { mutableStateOf(false) }
 
     val extractorJs = remember {
         runCatching {
@@ -157,8 +167,13 @@ fun BrowserScreen(navController: NavController, platform: String) {
             settings.domStorageEnabled = true
             settings.databaseEnabled = true
             settings.mediaPlaybackRequiresUserGesture = false
-            settings.loadWithOverviewMode = true
+            // v1.2.1: overview mode forced a zoomed-out desktop-style layout
+            // that broke these mobile SPAs; the default (false) respects the
+            // site's own viewport meta tag.
+            settings.loadWithOverviewMode = false
             settings.useWideViewPort = true
+            // v1.2.1: some Google flows open popups (auth, pickers).
+            settings.javaScriptCanOpenWindowsAutomatically = true
             // v1.2.0: apply the persisted UA mode. Read the system default
             // FIRST, then override — STANDARD mode needs the genuine UA
             // with only the "; wv" WebView marker stripped.
@@ -167,9 +182,28 @@ fun BrowserScreen(navController: NavController, platform: String) {
             val mode = SettingsStore.getUserAgentMode(context)
             appliedUaMode = mode
             settings.userAgentString = userAgentForMode(mode, sysUa)
+            // v1.2.1: a WebChromeClient is required for load progress and for
+            // capturing the page's JS console output (goes to logcat under
+            // "ConvArchive" for debugging render failures).
+            webChromeClient = object : WebChromeClient() {
+                override fun onProgressChanged(view: WebView, newProgress: Int) {
+                    loadProgress = newProgress
+                }
+
+                override fun onConsoleMessage(message: ConsoleMessage): Boolean {
+                    Log.d(
+                        "ConvArchive",
+                        "JS [${message.messageLevel()}] ${message.message()} " +
+                            "(${message.sourceId()}:${message.lineNumber()})",
+                    )
+                    return true
+                }
+            }
             webViewClient = object : WebViewClient() {
                 override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) {
                     pageError = null
+                    rendererCrashed = false
+                    loadProgress = 0
                 }
 
                 override fun onPageFinished(view: WebView, url: String) {
@@ -192,6 +226,17 @@ fun BrowserScreen(navController: NavController, platform: String) {
                         pageError = "Page failed to load: ${error.description} " +
                             "(check your connection, then reload)"
                     }
+                }
+
+                // v1.2.1: a dead renderer used to leave a permanent black
+                // screen with no explanation. Surface it and offer a reload.
+                override fun onRenderProcessGone(
+                    view: WebView,
+                    detail: RenderProcessGoneDetail,
+                ): Boolean {
+                    rendererCrashed = true
+                    loadProgress = 0
+                    return true
                 }
             }
             setDownloadListener(DownloadListener { url, userAgent, contentDisposition, mimeType, _ ->
@@ -392,6 +437,39 @@ fun BrowserScreen(navController: NavController, platform: String) {
                 factory = { webView },
                 modifier = Modifier.fillMaxSize(),
             )
+
+            // v1.2.1: show load progress so a slow first load doesn't look
+            // like a broken page.
+            if (loadProgress in 1..99 && !rendererCrashed && pageError == null) {
+                LinearProgressIndicator(
+                    progress = { loadProgress / 100f },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.TopCenter),
+                )
+            }
+
+            // v1.2.1: renderer crash recovery UI.
+            if (rendererCrashed) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Spacer(Modifier.height(48.dp))
+                    Text(
+                        "The page stopped responding and had to be closed.",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    TextButton(onClick = {
+                        rendererCrashed = false
+                        pageError = null
+                        webView.reload()
+                    }) { Text("Reload page") }
+                }
+            }
 
             if (pageError != null) {
                 Column(
