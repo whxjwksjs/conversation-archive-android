@@ -6,40 +6,28 @@ conversations from **Gemini** (gemini.google.com), **Google AI Studio**
 searchable, exportable personal library. No accounts, no telemetry, no
 servers — your archive never leaves your device.
 
-## How capture works (v1.1: in-app browsers)
+## Open services and capture conversations
 
-Each service opens in an **in-app browser** right inside Conversation
-Archive:
+The home screen's **Open website** action opens Gemini, AI Studio, or Jules in
+your regular browser. This is now the recommended path because Google can block
+sign-in or fail to load chat content inside embedded Android WebViews. The app
+does not try to bypass those restrictions.
 
-1. **Log in once** — tap Gemini, AI Studio, or Jules on the home screen.
-   You sign in with your Google account on Google's own login pages, inside
-   the app. The login persists (WebView cookies), so you don't re-login
-   every time.
-2. **Tap "Save conversation"** — the floating button on the browser screen.
-   The app scrolls the page to load the full history (bounded, with a
-   progress indicator), reads the visible conversation, and saves it
-   straight into your library. Duplicates are detected and skipped.
-3. **Files the page offers for download** (e.g. an export) are intercepted,
-   saved to the app's private storage, and offered for one-tap import.
+Each platform card also has two alternatives:
 
-What the app NEVER does: it never reads password fields, never copies your
-cookies or tokens anywhere, and makes no network calls of its own except
-loading the three official sites (plus same-site file downloads the page
-itself offers). Credentials are typed by you into Google's pages only.
+- **In-app view:** experimental WebView with a **Save conversation** button.
+  It can work, but Google may refuse sign-in or parts of the site may not load.
+- **Capture guide:** platform-specific instructions for the companion userscript
+  and import workflow.
 
-**Login caveat (read this):** Google sometimes refuses sign-ins from
-embedded WebViews ("Couldn't sign you in / This browser or app may not be
-secure"). Since v1.2.0 the app's default browser identity is your *genuine*
-mobile-Chrome user agent with only the `; wv` WebView marker stripped —
-the community-standard fix (a May 2026 report from a shipped app found
-Google relaxed the block for honest WebViews, while spoofed desktop UAs
-with inconsistent client hints now trip bot detection). If Google still
-blocks you, the browser screen detects the block page itself and offers
-three options: **Try another mode** (cycles Standard → Desktop → System
-default and reloads), **External browser**, or Dismiss. A persistent
-browser-identity setting also lives under Settings → In-app browser. If a
-site won't log in inside the app, use the per-screen "Open in external
-browser" button and import the export — the v1.0 workflow below still works.
+For reliable use, open the official site in a compatible browser, capture or
+export the conversation using a supported exporter/userscript, then import the
+result into Conversation Archive. The archive and its import/export functions
+work locally and do not require API keys.
+
+The app never reads password fields or copies cookies/tokens. Its network
+permission is used to load official pages in the optional in-app browser and
+to handle downloads the page itself offers.
 
 ## Fallback: userscript capture (v1.0 workflow)
 
@@ -61,12 +49,9 @@ automatically), import a Google Takeout "My Activity > Gemini Apps" export
 
 ## Features
 
-- **In-app browsers (v1.1):** Gemini, AI Studio, and Jules open inside the
-  app. Log in once with your Google account (login persists via WebView
-  cookies); tap "Save conversation" to archive the open chat/task with
-  duplicate detection. Page-offered downloads are intercepted and offered
-  for import. Each browser screen also offers "Open in external browser"
-  and the capture guide.
+- **Platform launchers:** open Gemini, AI Studio, and Jules in the regular
+  browser by default, with optional in-app WebView and a direct capture guide.
+  The WebView extractor can save rendered page content when the site permits it.
 - **Library:** browse conversations grouped by Gemini / AI Studio / Jules;
   search, filter by platform/date, sort, tag, favorite, add notes, rename.
 - **Detail view:** transcript with role labels, timestamps, code blocks,
@@ -83,22 +68,20 @@ automatically), import a Google Takeout "My Activity > Gemini Apps" export
   pipeline so backups survive app/schema changes.
 - **Duplicates:** SHA-256 content-hash detection — duplicates are reported
   and skipped, with an explicit "import anyway" path.
-- **Privacy:** no accounts, no analytics, no network SDKs. Since v1.1 the
-  app holds the INTERNET permission, used ONLY to load the three official
-  sites in the in-app browsers (and same-site downloads). Credentials are
-  typed into Google's pages only; the app never reads or transmits them.
+- **Privacy:** no accounts, no analytics, no network SDKs. The INTERNET
+  permission is used for the optional in-app browser and site-offered downloads.
+  Credentials are typed into official site pages; the app never reads or
+  transmits them.
 - **Theme:** Material3, light + dark (system default, manual override),
   dynamic color off by default.
 
 ## Honest limitations
 
-- **In-app login is at Google's mercy.** Embedded-WebView logins sometimes
-  get refused or challenged by Google. Since v1.2.0 the default is the
-  honest UA with only `; wv` stripped (Standard mode); Desktop (the old
-  v1.1 spoof) and System default remain as fallbacks, switchable in
-  Settings → In-app browser or via the on-page "Try another mode" dialog
-  that appears when the block is detected. If login fails in-app, the
-  external-browser + import fallback always works.
+- **Embedded WebView support is not guaranteed.** Google can block sign-in or
+  chat loading inside an in-app browser. Use the home screen's **Open website**
+  action to access the service in your regular browser. Conversation capture
+  then depends on the site's export features or a compatible userscript/
+  exporter; import the resulting file into the app.
 - **The extractors are EXPERIMENTAL.** Both the in-app extractor
   (`app/src/main/assets/extractor.js`) and the companion userscripts capture
   only *rendered* content — virtualized/scrolled-away messages, collapsed
