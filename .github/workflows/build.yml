@@ -7,7 +7,7 @@ on:
       version:
         description: 'Version name (must match versionName in app/build.gradle.kts)'
         required: true
-        default: '1.2.0'
+        default: '1.2.2'
   push:
     branches: [main]
     paths: ['.github/workflows/build.yml']
@@ -57,7 +57,7 @@ jobs:
 
       - name: Rename APKs
         run: |
-          VERSION="${{ inputs.version || '1.2.0' }}"
+          VERSION="${{ inputs.version || '1.2.2' }}"
           cd app/build/outputs/apk/debug
           for f in *.apk; do echo "found: $f"; done
           mv app-armeabi-v7a-debug.apk "convarchive-${VERSION}-debug-armeabi-v7a.apk"
@@ -69,12 +69,12 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          VERSION="${{ inputs.version || '1.2.0' }}"
+          VERSION="${{ inputs.version || '1.2.2' }}"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git tag "v$VERSION"
           git push origin "v$VERSION"
           gh release create "v$VERSION" \
             --title "v$VERSION - Conversation Archive for Android" \
-            --notes "Conversation Archive v$VERSION - local-first Android app to capture, import, archive, and export conversations from Google Gemini, Google AI Studio, and Google Jules. No accounts, no API keys, no telemetry; everything stays on the device. IMPORTANT: these are DEBUG builds signed with the Android debug key. Android will warn about an unknown developer on install - that is expected for a debug build. Install the universal APK." \
+            --notes "Conversation Archive v$VERSION - local-first Android app to capture, import, archive, and export conversations from Google Gemini, Google AI Studio, and Google Jules. This release improves platform entry points by recommending the external browser where embedded Google sign-in or chat loading may fail. No accounts, no API keys, no telemetry; everything stays on the device. IMPORTANT: these are DEBUG builds signed with the Android debug key. Android will warn about an unknown developer on install - that is expected for a debug build. Install the universal APK." \
             app/build/outputs/apk/debug/convarchive-*.apk
